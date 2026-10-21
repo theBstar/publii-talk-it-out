@@ -1,0 +1,12 @@
+{
+    "name": "Talk It Out",
+    "description": "Dictate posts, draft whole articles by talking, and edit them in place with spoken commands. Works in the WYSIWYG, Block and Markdown editors. On-device speech recognition; Claude is optional.",
+    "license": "GPL-3.0",
+    "author": "Bikram Sutar",
+    "version": "0.1.0",
+    "scope": "site",
+    "minimumPubliiVersion": "0.46.0",
+    "usePluginSettingsView": true,
+    "previewNotRequired": true,
+    "config": []
+}

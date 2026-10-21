@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Talk It Out settings</title>
+    <link rel="stylesheet" href="options.css">
+</head>
+<body>
+    <main class="page">
+        <header class="hero">
+            <p class="lede">Dictate posts, draft whole articles by talking, and edit in place with your voice.</p>
+            <div class="hero-actions">
+                <span class="pill" id="runtime-status" data-state="loading">Starting…</span>
+            </div>
+        </header>
+
+        <section class="card start">
+            <div>
+                <h2>Start writing</h2>
+                <p>Opens a new post and starts listening in <strong>Draft</strong> mode. Talk through your article, then say <q>finish the draft</q>.</p>
+            </div>
+            <div class="row">
+                <label class="inline">
+                    <span>Editor</span>
+                    <select id="preferred-editor" data-setting="ui.preferredEditor">
+                        <option value="tinymce">WYSIWYG</option>
+                        <option value="blockeditor">Block editor</option>
+                        <option value="markdown">Markdown</option>
+                    </select>
+                </label>
+                <button class="btn primary" id="new-draft" type="button">New voice draft</button>
+            </div>
+            <p class="hint">Inside any post or page editor there's a floating mic panel. Shortcuts: <kbd>⌥⇧V</kbd> listen, <kbd>⌥⇧C</kbd> dictate / edit, <kbd>⌥⇧D</kbd> draft.</p>
+        </section>
+
+        <section class="card">
+            <h2>Speech recognition</h2>
+
+            <div class="choice-group" role="radiogroup" aria-label="Speech recognition">
+                <label class="choice">
+                    <input type="radio" name="stt-provider" value="local" data-setting="stt.provider">
+                    <span>
+                        <strong>On this computer</strong>
+                        <small>Whisper runs locally. Free and private: audio never leaves your machine. One-time model download.</small>
+                    </span>
+                </label>
+                <label class="choice">
+                    <input type="radio" name="stt-provider" value="cloud" data-setting="stt.provider">
+                    <span>
+                        <strong>Cloud API</strong>
+                        <small>Any OpenAI-compatible transcription endpoint. Faster on older machines; the provider bills per minute of audio.</small>
+                    </span>
+                </label>
+            </div>
+
+            <div class="fields" data-show-when="stt.provider=local">
+                <label>
+                    <span>Model</span>
+                    <select data-setting="stt.localModel">
+                        <option value="onnx-community/whisper-tiny.en">Tiny, English · fastest, ~40 MB</option>
+                        <option value="onnx-community/whisper-base.en">Base, English · recommended, ~80 MB</option>
+                        <option value="onnx-community/whisper-small.en">Small, English · more accurate, ~250 MB</option>
+                        <option value="onnx-community/whisper-base">Base, multilingual · ~80 MB</option>
+                        <option value="onnx-community/whisper-large-v3-turbo">Large v3 Turbo, multilingual · best, ~800 MB, needs a GPU</option>
+                    </select>
+                </label>
+                <label data-show-when="stt.localModel!~.en">
+                    <span>Language</span>
+                    <input type="text" data-setting="stt.language" placeholder="en" maxlength="12">
+                    <small>Code such as en, de, es, hi. Leave empty to auto-detect.</small>
+                </label>
+            </div>
+
+            <div class="fields" data-show-when="stt.provider=cloud">
+                <label>
+                    <span>API base URL</span>
+                    <input type="url" data-setting="stt.cloudBaseUrl" placeholder="https://api.openai.com/v1" spellcheck="false">
+                    <small>OpenAI: https://api.openai.com/v1 · Groq: https://api.groq.com/openai/v1</small>
+                </label>
+                <label>
+                    <span>API key</span>
+                    <input type="password" data-setting="stt.cloudApiKey" autocomplete="off" spellcheck="false">
+                </label>
+                <label>
+                    <span>Model</span>
+                    <input type="text" data-setting="stt.cloudModel" placeholder="gpt-4o-mini-transcribe" spellcheck="false">
+                    <small>e.g. gpt-4o-mini-transcribe, whisper-1, or whisper-large-v3-turbo on Groq</small>
+                </label>
+                <label>
+                    <span>Language</span>
+                    <input type="text" data-setting="stt.language" placeholder="en" maxlength="12">
+                </label>
+            </div>
+
+            <div class="test">
+                <button class="btn" id="test-speech" type="button">Test microphone &amp; recognition</button>
+                <div class="meter" aria-hidden="true"><i id="test-level"></i></div>
+                <p class="test-output" id="test-output" aria-live="polite"></p>
+            </div>
+
+            <details class="advanced">
+                <summary>Listening</summary>
+                <div class="fields">
+                    <label>
+                        <span>Pause before an utterance ends <output id="silence-out"></output></span>
+                        <input type="range" min="400" max="2000" step="100" data-setting="vad.silenceMs" data-output="silence-out" data-unit="ms">
+                        <small>Longer pauses let you think mid-sentence; shorter ones make commands snappier.</small>
+                    </label>
+                    <label>
+                        <span>Microphone sensitivity <output id="sensitivity-out"></output></span>
+                        <input type="range" min="0" max="1" step="0.05" data-setting="vad.sensitivity" data-output="sensitivity-out">
+                        <small>Lower it in noisy rooms; raise it if quiet speech gets missed.</small>
+                    </label>
+                    <label class="check">
+                        <input type="checkbox" data-setting="ui.speakFeedback">
+                        <span>Speak confirmations and errors aloud</span>
+                    </label>
+                </div>
+            </details>
+        </section>
+
+        <section class="card">
+            <div class="card-head">
+                <h2>Claude <span class="tag">optional</span></h2>
+                <label class="switch">
+                    <input type="checkbox" data-setting="ai.enabled">
+                    <span>Use Claude</span>
+                </label>
+            </div>
+            <p>Turns a rambling dictation into a structured article in your own words, and handles free-form edits such as <q>Claude, tighten this paragraph</q> or <q>Claude, add a conclusion</q>. Without it, drafts are inserted as dictated and only the built-in commands work.</p>
+
+            <div class="fields" data-show-when="ai.enabled=true">
+                <label>
+                    <span>Anthropic API key</span>
+                    <div class="row">
+                        <input type="password" data-setting="ai.apiKey" autocomplete="off" spellcheck="false" placeholder="sk-ant-…">
+                        <button class="btn" id="test-claude" type="button">Check key</button>
+                    </div>
+                    <small id="claude-status">Checking the key reads model info only and costs nothing.</small>
+                </label>
+                <label>
+                    <span>Model</span>
+                    <select data-setting="ai.model">
+                        <option value="claude-opus-5-5">Claude Opus 5.5 · best writing quality</option>
+                        <option value="claude-sonnet-5-5">Claude Sonnet 5.5 · about half the cost</option>
+                        <option value="claude-haiku-5-5">Claude Haiku 5.5 · fastest, a fraction of the cost</option>
+                    </select>
+                    <small id="cost-hint"></small>
+                </label>
+                <label>
+                    <span>How should drafts read?</span>
+                    <textarea rows="3" data-setting="ai.draftStyle"></textarea>
+                    <small>Added to every draft request, e.g. “Short paragraphs, British spelling, no headings.”</small>
+                </label>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Voice commands</h2>
+            <label class="fields">
+                <span>Wake words</span>
+                <input type="text" data-setting="commands.wakeWords" spellcheck="false">
+                <small>Start a sentence with one of these to give a command while dictating, e.g. <q>Editor, make this a heading</q>. Comma separated.</small>
+            </label>
+
+            <div class="commands">
+                <div>
+                    <h3>Any time</h3>
+                    <ul>
+                        <li><code>new paragraph</code> <code>new line</code></li>
+                        <li><code>scratch that</code> <code>undo</code> <code>redo</code></li>
+                        <li><code>stop listening</code> <code>help</code></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>After the wake word, or in Edit mode</h3>
+                    <ul>
+                        <li><code>replace teh with the</code> <code>delete basically</code></li>
+                        <li><code>select the last sentence</code> <code>select paragraph</code></li>
+                        <li><code>bold that</code> <code>italicize the quick fox</code></li>
+                        <li><code>make this a heading</code> <code>turn this into a numbered list</code></li>
+                        <li><code>heading two: Why it matters</code></li>
+                        <li><code>delete the last sentence</code> <code>delete this paragraph</code></li>
+                        <li><code>go to the end</code> <code>next paragraph</code></li>
+                        <li><code>set the title to …</code> <code>read this back</code> <code>save</code></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>Drafting</h3>
+                    <ul>
+                        <li><code>start a draft</code> <code>heading: …</code></li>
+                        <li><code>finish the draft</code> <code>cancel draft</code></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Start automatically</h2>
+            <p>Publii only runs plugin code in the editor after this page has been opened once per launch. To have the mic panel appear on its own in the WYSIWYG editor, add this to <code id="override-path">~/Documents/Publii/config/tinymce.override.json</code> and restart Publii (or run <code>install.sh --autostart</code> from the plugin folder):</p>
+            <pre id="override-snippet"></pre>
+            <button class="btn" id="copy-snippet" type="button">Copy</button>
+            <p class="hint">The Block and Markdown editors pick it up as soon as Talk It Out has started once in the session.</p>
+        </section>
+
+        <section class="card muted">
+            <h2>Privacy</h2>
+            <ul class="plain">
+                <li>With on-device recognition, audio is processed in Publii and never uploaded.</li>
+                <li>With a cloud API or Claude, the audio clip or the post text is sent to that provider when you speak or edit.</li>
+                <li>Keys are stored in Publii's local app storage on this computer, not in your site files or backups.</li>
+            </ul>
+        </section>
+
+        <footer class="footer">
+            Talk It Out <span id="footer-version"></span> · open source (GPL-3.0) ·
+            <a href="https://github.com/theBstar/publii-talk-it-out" data-external>Source on GitHub</a> ·
+            <a href="https://github.com/theBstar/publii-talk-it-out/issues" data-external>Report an issue</a>
+        </footer>
+
+        <p class="saved" id="saved" aria-live="polite"></p>
+    </main>
+
+    <script src="../runtime/settings.js"></script>
+    <script src="../runtime/audio.js"></script>
+    <script src="options.js"></script>
+</body>
+</html>

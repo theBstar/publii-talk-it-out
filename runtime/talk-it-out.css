@@ -1,0 +1,523 @@
+/* Talk It Out panel — lives in a shadow root inside Publii's window */
+
+:host {
+    all: initial;
+}
+
+.vw {
+    --vw-bg: #ffffff;
+    --vw-fg: #1c1e24;
+    --vw-muted: #697080;
+    --vw-line: rgba(20, 24, 36, 0.10);
+    --vw-chip: #f1f2f5;
+    --vw-chip-active: #ffffff;
+    --vw-rec: #e5484d;
+    --vw-rec-soft: rgba(229, 72, 77, 0.14);
+    --vw-accent: #3e63dd;
+    --vw-accent-soft: rgba(62, 99, 221, 0.12);
+    --vw-on-accent: #ffffff;
+    --vw-success: #18794e;
+    --vw-warn: #9a6700;
+    --vw-error: #cd2b31;
+    --vw-shadow: 0 12px 32px rgba(17, 20, 30, 0.16), 0 2px 6px rgba(17, 20, 30, 0.08);
+
+    position: fixed;
+    z-index: 2147483000;
+    width: 340px;
+    max-width: calc(100vw - 32px);
+    box-sizing: border-box;
+    padding: 10px;
+    border: 1px solid var(--vw-line);
+    border-radius: 16px;
+    background: var(--vw-bg);
+    color: var(--vw-fg);
+    box-shadow: var(--vw-shadow);
+    font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+}
+
+:host-context(html[data-theme="dark"]) .vw {
+    --vw-bg: #24252c;
+    --vw-fg: #eceef3;
+    --vw-muted: #9ba1ad;
+    --vw-line: rgba(255, 255, 255, 0.10);
+    --vw-chip: #30313a;
+    --vw-chip-active: #464854;
+    --vw-rec: #ff6369;
+    --vw-rec-soft: rgba(255, 99, 105, 0.18);
+    --vw-accent: #849dff;
+    --vw-accent-soft: rgba(132, 157, 255, 0.16);
+    --vw-on-accent: #11131a;
+    --vw-success: #4cc38a;
+    --vw-warn: #f1c21b;
+    --vw-error: #ff6369;
+    --vw-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.vw *,
+.vw *::before,
+.vw *::after {
+    box-sizing: border-box;
+}
+
+.vw [hidden] {
+    display: none !important;
+}
+
+.vw button {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+
+.vw button:focus-visible {
+    outline: 2px solid var(--vw-accent);
+    outline-offset: 2px;
+}
+
+.vw.vw-dragging {
+    cursor: grabbing;
+    opacity: 0.92;
+}
+
+/* ---------- top bar ---------- */
+
+.vw-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.vw-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.vw-top {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: grab;
+}
+
+.vw-grow {
+    flex: 1;
+}
+
+.vw-mic {
+    position: relative;
+    flex: none;
+    width: 46px;
+    height: 46px;
+    border: 0;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--vw-chip);
+    color: var(--vw-fg);
+    transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.vw-mic:hover {
+    background: var(--vw-chip-active);
+}
+
+.vw-mic:active {
+    transform: scale(0.96);
+}
+
+.vw-mic svg {
+    position: relative;
+}
+
+.vw-ring {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    pointer-events: none;
+}
+
+.vw[data-state="listening"] .vw-mic {
+    background: var(--vw-rec);
+    color: #fff;
+}
+
+.vw[data-state="listening"] .vw-ring {
+    border-color: var(--vw-rec-soft);
+    animation: vw-pulse 1.8s ease-out infinite;
+}
+
+.vw[data-state="listening"].vw-speaking .vw-ring {
+    border-color: var(--vw-rec);
+    animation-duration: 0.9s;
+}
+
+.vw[data-state="busy"] .vw-mic {
+    background: var(--vw-accent);
+    color: var(--vw-on-accent);
+}
+
+.vw[data-state="busy"] .vw-ring {
+    border-color: var(--vw-accent) transparent transparent transparent;
+    animation: vw-spin 0.9s linear infinite;
+}
+
+@keyframes vw-pulse {
+    0% { transform: scale(0.92); opacity: 1; }
+    100% { transform: scale(1.18); opacity: 0; }
+}
+
+@keyframes vw-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .vw-ring { animation: none !important; }
+}
+
+/* ---------- modes ---------- */
+
+.vw-modes {
+    display: inline-flex;
+    padding: 2px;
+    border-radius: 9px;
+    background: var(--vw-chip);
+}
+
+.vw-modes button {
+    border: 0;
+    background: transparent;
+    padding: 3px 9px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--vw-muted);
+}
+
+.vw-modes button[aria-checked="true"] {
+    background: var(--vw-chip-active);
+    color: var(--vw-fg);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.vw-icon {
+    width: 26px;
+    height: 26px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--vw-muted);
+    display: grid;
+    place-items: center;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.vw-icon:hover {
+    background: var(--vw-chip);
+    color: var(--vw-fg);
+}
+
+/* ---------- status ---------- */
+
+.vw-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    min-height: 18px;
+    color: var(--vw-muted);
+    font-size: 12px;
+    cursor: grab;
+}
+
+.vw-status-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vw-meter {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 16px;
+}
+
+.vw-meter i {
+    display: block;
+    width: 3px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--vw-muted);
+    opacity: 0.5;
+    transition: height 0.08s linear;
+}
+
+.vw[data-state="listening"] .vw-meter i {
+    background: var(--vw-rec);
+    opacity: 1;
+}
+
+.vw-cost {
+    font-variant-numeric: tabular-nums;
+    color: var(--vw-accent);
+}
+
+/* ---------- download progress ---------- */
+
+.vw-progress {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--vw-muted);
+}
+
+.vw-progress-track {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--vw-chip);
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.vw-progress-track i {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--vw-accent);
+    transition: width 0.2s ease;
+}
+
+/* ---------- last heard ---------- */
+
+.vw-heard {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: var(--vw-chip);
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+}
+
+.vw-heard-label {
+    flex: none;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--vw-muted);
+}
+
+.vw-heard-label.vw-kind-command { color: var(--vw-accent); }
+.vw-heard-label.vw-kind-ai { color: var(--vw-accent); }
+
+.vw-heard-text {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
+/* ---------- toast ---------- */
+
+.vw-toast {
+    margin-top: 8px;
+    padding: 7px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    border: 1px solid var(--vw-line);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    align-items: center;
+}
+
+.vw-toast[data-kind="success"] { color: var(--vw-success); }
+.vw-toast[data-kind="warn"] { color: var(--vw-warn); }
+.vw-toast[data-kind="error"] { color: var(--vw-error); border-color: currentColor; }
+
+.vw-link {
+    border: 0;
+    background: none;
+    padding: 0;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+/* ---------- draft ---------- */
+
+.vw-draft {
+    margin-top: 10px;
+    border-top: 1px solid var(--vw-line);
+    padding-top: 10px;
+}
+
+.vw-draft-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+}
+
+.vw-draft-count {
+    font-size: 12px;
+    color: var(--vw-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.vw-draft-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.vw-draft-body {
+    max-height: 200px;
+    overflow-y: auto;
+    padding-right: 4px;
+    user-select: text;
+    font-size: 12.5px;
+    line-height: 1.5;
+}
+
+.vw-draft-body p {
+    margin: 0 0 8px;
+}
+
+.vw-draft-body h5 {
+    margin: 10px 0 4px;
+    font-size: 13px;
+}
+
+.vw-draft-body .vw-placeholder {
+    color: var(--vw-muted);
+}
+
+.vw-draft-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.vw-btn {
+    border: 1px solid var(--vw-line);
+    background: var(--vw-bg);
+    padding: 5px 11px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.vw-btn:hover {
+    background: var(--vw-chip);
+}
+
+.vw-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.vw .vw-primary {
+    background: var(--vw-accent);
+    border-color: var(--vw-accent);
+    color: var(--vw-on-accent);
+}
+
+.vw .vw-primary:hover:not(:disabled) {
+    background: var(--vw-accent);
+    filter: brightness(1.08);
+}
+
+.vw-quiet {
+    margin-left: auto;
+    border-color: transparent;
+    color: var(--vw-muted);
+}
+
+/* ---------- help ---------- */
+
+.vw-help {
+    margin-top: 10px;
+    border-top: 1px solid var(--vw-line);
+    padding-top: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+    user-select: text;
+}
+
+.vw-help h4 {
+    margin: 8px 0 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--vw-muted);
+}
+
+.vw-help ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.vw-help li {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 3px 0;
+    font-size: 12px;
+}
+
+.vw-help code {
+    font: 500 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.vw-help li span {
+    color: var(--vw-muted);
+    text-align: right;
+}
+
+/* ---------- minimised ---------- */
+
+.vw[data-collapsed="true"] {
+    width: auto;
+    padding: 6px;
+    border-radius: 30px;
+}
+
+.vw[data-collapsed="true"] .vw-main,
+.vw[data-collapsed="true"] .vw-heard,
+.vw[data-collapsed="true"] .vw-progress,
+.vw[data-collapsed="true"] .vw-toast:not([data-kind="error"]) {
+    display: none;
+}
+
+.vw-expand {
+    display: none;
+}
+
+.vw[data-collapsed="true"] .vw-expand {
+    display: grid;
+}
+
+.vw[data-collapsed="true"] .vw-bar {
+    gap: 2px;
+}
+
+.vw[data-collapsed="true"] .vw-mic::after {
+    content: "";
+    position: absolute;
+    right: 1px;
+    bottom: 1px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--vw-bg);
+    background: var(--vw-muted);
+}
+
+.vw[data-collapsed="true"][data-mode="command"] .vw-mic::after { background: var(--vw-accent); }
+.vw[data-collapsed="true"][data-mode="draft"] .vw-mic::after { background: var(--vw-success); }
