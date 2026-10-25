@@ -179,6 +179,12 @@
                     sensitivity: this.settings.vad.sensitivity,
                     onLevel: (level, speaking) => this.ui && this.ui.setLevel(level, speaking),
                     onSpeechStart: () => this.setStatus('Hearing you…'),
+                    onSilentInput: () => {
+                        this.stop('Microphone blocked');
+                        this.notify(NS.settings.MIC_BLOCKED_MESSAGE, 'error', [
+                            { label: 'How to fix', run: () => window.mainProcessAPI.shellOpenExternal(NS.settings.LINKS.micHelp) }
+                        ]);
+                    },
                     onUtterance: (pcm, duration) => this._enqueue(pcm, duration)
                 });
 

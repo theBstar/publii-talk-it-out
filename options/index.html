@@ -99,6 +99,16 @@
                 <p class="test-output" id="test-output" aria-live="polite"></p>
             </div>
 
+            <div class="mic-fix" id="mic-fix" hidden>
+                <p><strong>Why:</strong> Publii's macOS app is signed without microphone permission, so macOS gives it silence instead of your voice. A one-time fix adds that permission to your copy of Publii. Your sites and settings aren't touched, and the original app is backed up.</p>
+                <p>Quit Publii, open the Terminal app, and run:</p>
+                <pre id="mic-fix-command"></pre>
+                <div class="row">
+                    <button class="btn" id="copy-mic-fix" type="button">Copy</button>
+                    <a href="https://github.com/theBstar/publii-talk-it-out#microphone-on-macos" data-external>What does this do?</a>
+                </div>
+            </div>
+
             <details class="advanced">
                 <summary>Listening</summary>
                 <div class="fields">

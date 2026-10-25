@@ -6,8 +6,8 @@
     'use strict';
 
     const NS = root.TalkItOutNS;
-    const VERSION = '0.1.0';
-    const REPO_URL = 'https://github.com/theBstar/publii-talk-it-out';
+    const VERSION = '0.1.1';
+    const REPO_URL = NS.settings.LINKS.repo;
     // Publii minor versions this release was built and tested against
     const TESTED_PUBLII = ['0.47'];
 

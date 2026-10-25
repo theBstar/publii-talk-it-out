@@ -59,6 +59,7 @@
          *   onUtterance(Float32Array pcm16k, durationSeconds)
          *   onLevel(level 0..1, isSpeech)
          *   onSpeechStart()
+         *   onSilentInput()  the device delivers pure digital silence (blocked by the OS)
          *   silenceMs, sensitivity (0..1)
          */
         constructor (options) {
@@ -100,6 +101,9 @@
             this.speechFrames = 0;
             this.silenceFrames = 0;
             this.loudFrames = 0;
+            this.framesSeen = 0;
+            this.heardSignal = false;
+            this.silenceReported = false;
             this.running = true;
         }
 
@@ -152,6 +156,20 @@
             }
 
             let rms = Math.sqrt(sum / frame.length);
+
+            // A real microphone always has some noise. Perfect zeros mean the OS is
+            // withholding audio (on macOS: the app lacks microphone permission).
+            this.framesSeen++;
+
+            if (rms > 0) {
+                this.heardSignal = true;
+            } else if (!this.heardSignal && !this.silenceReported && this.framesSeen * this.frameMs > 2500) {
+                this.silenceReported = true;
+
+                if (this.options.onSilentInput) {
+                    this.options.onSilentInput();
+                }
+            }
 
             if (this.calibrationFrames > 0) {
                 this.calibrationFrames--;

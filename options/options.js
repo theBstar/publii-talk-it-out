@@ -9,7 +9,7 @@
 
     const NS = window.TalkItOutNS;
     const S = NS.settings;
-    const VERSION = '0.1.0';
+    const VERSION = '0.1.1';
     const parentWindow = window.parent;
     const pluginBase = new URL('../', window.location.href).href;
     const $ = selector => document.querySelector(selector);
@@ -218,6 +218,7 @@
         let recorder = null;
         button.disabled = true;
         output.dataset.kind = '';
+        $('#mic-fix').hidden = true;
 
         try {
             let api = await runtimeReady;
@@ -243,6 +244,12 @@
                     sensitivity: settings.vad.sensitivity,
                     onLevel: value => { level.style.width = Math.round(value * 100) + '%'; },
                     onSpeechStart: () => { output.textContent = 'Listening…'; },
+                    onSilentInput: () => {
+                        clearTimeout(timeout);
+                        let error = new Error(S.MIC_BLOCKED_MESSAGE);
+                        error.micBlocked = true;
+                        reject(error);
+                    },
                     onUtterance: audio => { clearTimeout(timeout); resolve(audio); }
                 });
 
@@ -259,6 +266,7 @@
             output.textContent = text ? '“' + text + '” — ' + seconds + ' s' : 'Heard sound but no words. Try speaking closer to the mic.';
         } catch (error) {
             output.dataset.kind = 'error';
+            $('#mic-fix').hidden = !(error && error.micBlocked);
             output.textContent = error && error.name === 'NotAllowedError'
                 ? 'Microphone access is blocked. Allow Publii in System Settings → Privacy & Security → Microphone.'
                 : (error && error.message) || String(error);
@@ -269,6 +277,21 @@
             button.disabled = false;
             testing = false;
         }
+    });
+
+    /* ---------------- microphone fix (macOS) ---------------- */
+
+    const MIC_FIX_COMMAND = [
+        'curl -fsSLO https://raw.githubusercontent.com/theBstar/publii-talk-it-out/v' + VERSION + '/scripts/patch-publii-mic.sh',
+        'bash patch-publii-mic.sh'
+    ].join('\n');
+
+    $('#mic-fix-command').textContent = MIC_FIX_COMMAND;
+    $('#copy-mic-fix').addEventListener('click', () => {
+        navigator.clipboard.writeText(MIC_FIX_COMMAND).then(() => {
+            $('#copy-mic-fix').textContent = 'Copied';
+            setTimeout(() => { $('#copy-mic-fix').textContent = 'Copy'; }, 1500);
+        });
     });
 
     /* ---------------- Claude key check ---------------- */

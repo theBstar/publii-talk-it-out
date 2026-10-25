@@ -366,6 +366,24 @@ output {
 .test-output[data-kind="success"] { color: var(--success); }
 .test-output[data-kind="error"] { color: var(--error); }
 
+.mic-fix {
+    margin-top: 14px;
+    padding: 14px 16px;
+    border: 1px solid var(--error);
+    border-radius: 10px;
+    background: var(--bg);
+    font-size: 13px;
+}
+
+.mic-fix p {
+    margin: 0 0 10px;
+}
+
+.mic-fix a {
+    color: var(--accent);
+    font-size: 13px;
+}
+
 .advanced {
     margin-top: 16px;
     border-top: 1px solid var(--line);

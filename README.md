@@ -22,13 +22,34 @@ A plugin for [Publii](https://getpublii.com), the open-source static site CMS. I
 
 - **macOS** with **Publii 0.47** (tested with 0.47.6). Other Publii versions show a warning when the plugin starts. Windows and Linux haven't been tested yet; reports and pull requests are welcome.
 - A microphone. macOS asks for permission the first time.
+- **A one-time microphone fix for Publii on macOS** (see below). Without it, Publii hears only silence.
+
+## Microphone on macOS
+
+Publii's macOS app (0.47.6) is signed without Apple's microphone entitlement (`com.apple.security.device.audio-input`). Because the app runs under Apple's hardened runtime, macOS gives Publii pure silence instead of your voice and never asks for permission. Publii itself can't hear you, so no plugin can work around this from inside Publii. Talk It Out detects the silence and links here.
+
+**The fix:** [`scripts/patch-publii-mic.sh`](scripts/patch-publii-mic.sh) adds that one entitlement to your copy of Publii and re-signs it locally. Quit Publii, open Terminal, and run:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/theBstar/publii-talk-it-out/v0.1.1/scripts/patch-publii-mic.sh
+bash patch-publii-mic.sh
+```
+
+It's worth reading the script first; it's short. Here's what it does and doesn't touch:
+
+- It changes only `/Applications/Publii.app`, after backing up the original to `~/Library/Application Support/Talk It Out/backups/`. `bash patch-publii-mic.sh --restore` puts the original back.
+- Your sites, posts, media, themes and settings live elsewhere (`~/Documents/Publii`, `~/Library/Application Support/Publii`) and aren't touched.
+- The next time you dictate, macOS asks for microphone access: click **Allow**. macOS may also ask once to let Publii read its saved server passwords in your keychain: enter your Mac password and choose **Always Allow**.
+- Installing a new Publii version replaces the app, so run the script again afterwards.
+
+The proper fix is for Publii to ship with the entitlement. The fix has been proposed upstream in [GetPublii/Publii#2732](https://github.com/GetPublii/Publii/pull/2732); once a Publii release includes it, this step goes away.
 
 ## Install
 
 1. Download `talk-it-out-<version>.zip` from the [latest release](https://github.com/theBstar/publii-talk-it-out/releases/latest).
 2. In Publii, open the app menu at the top right (the **⋯** or bell icon) → **Plugins** → **Install plugin**, and pick the zip.
 3. Open your site → **Tools & Plugins**, switch on **Talk It Out**, and click it to open its settings.
-4. Click **Test microphone & recognition**. The first run downloads the speech model (about 80 MB, once).
+4. Click **Test microphone & recognition**. The first run downloads the speech model (about 80 MB, once). If it reports silence, apply the [microphone fix](#microphone-on-macos) and try again.
 
 Open any post: the mic panel is in the bottom-right corner. Click the mic or press **⌥⇧V**.
 

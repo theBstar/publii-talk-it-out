@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1 — 2026-10-25
+
+- **Microphone on macOS:** Publii 0.47.6 is signed without Apple's microphone entitlement, so it receives pure silence. Talk It Out now detects this, stops listening, and explains the fix instead of showing a flat meter.
+- Added `scripts/patch-publii-mic.sh`, which adds the entitlement to your copy of Publii and re-signs it locally. It backs up the original app, `--restore` undoes it, and your sites and settings aren't touched.
+- The settings page's microphone test shows the fix commands when it detects silence.
+- Proposed the proper fix upstream: [GetPublii/Publii#2732](https://github.com/GetPublii/Publii/pull/2732).
+
 ## 0.1.0 — 2026-10-21
 
 First release.

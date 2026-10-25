@@ -109,8 +109,18 @@
         return (inputTokens * price[0] + outputTokens * price[1]) / 1e6;
     }
 
+    const LINKS = {
+        repo: 'https://github.com/theBstar/publii-talk-it-out',
+        issues: 'https://github.com/theBstar/publii-talk-it-out/issues',
+        micHelp: 'https://github.com/theBstar/publii-talk-it-out#microphone-on-macos'
+    };
+
+    const MIC_BLOCKED_MESSAGE = 'Publii is receiving silence from your microphone. On macOS, Publii needs a one-time fix before it can use the mic.';
+
     root.TalkItOutNS = root.TalkItOutNS || {};
     root.TalkItOutNS.settings = {
+        LINKS,
+        MIC_BLOCKED_MESSAGE,
         STORAGE_KEY,
         DEFAULTS,
         MODEL_PRICES,
