@@ -14,6 +14,7 @@
     const PRE_ROLL_MS = 300;
     const MIN_SPEECH_MS = 250;
     const MAX_UTTERANCE_MS = 28000;   // Whisper's window is 30 s
+    const MIN_START_LEVEL = 0.0015;   // about -56 dBFS: quieter than this is never speech
 
     // Box-filter decimation: good enough for speech, no dependencies
     function resample (input, fromRate) {
@@ -40,6 +41,33 @@
         return output;
     }
 
+    // Bring quiet speech up to a consistent level (at most 20x gain) for transcription
+    function normalise (pcm) {
+        let peak = 0;
+
+        for (let i = 0; i < pcm.length; i++) {
+            peak = Math.max(peak, Math.abs(pcm[i]));
+        }
+
+        if (!peak) {
+            return pcm;
+        }
+
+        let gain = Math.min(0.9 / peak, 20);
+
+        if (gain <= 1) {
+            return pcm;
+        }
+
+        let output = new Float32Array(pcm.length);
+
+        for (let i = 0; i < pcm.length; i++) {
+            output[i] = pcm[i] * gain;
+        }
+
+        return output;
+    }
+
     function concat (chunks) {
         let length = chunks.reduce((total, chunk) => total + chunk.length, 0);
         let output = new Float32Array(length);
@@ -56,7 +84,7 @@
     class Recorder {
         /**
          * @param {object} options
-         *   onUtterance(Float32Array pcm16k, durationSeconds)
+         *   onUtterance(Float32Array pcm16k, durationSeconds, voicedSeconds)
          *   onLevel(level 0..1, isSpeech)
          *   onSpeechStart()
          *   onSilentInput()  the device delivers pure digital silence (blocked by the OS)
@@ -78,7 +106,9 @@
                     channelCount: 1,
                     echoCancellation: true,
                     noiseSuppression: true,
-                    autoGainControl: true
+                    // Gain control boosts the room between sentences until it looks
+                    // like speech, so utterances never end. Levels are handled below.
+                    autoGainControl: false
                 }
             });
 
@@ -93,7 +123,9 @@
             this.processor.connect(this.context.destination);
 
             this.frameMs = FRAME_SIZE / this.sampleRate * 1000;
-            this.noiseFloor = 0.004;
+            this.noiseFloor = 0;
+            this.smoothLevel = 0;
+            this.speechPeak = 0;
             this.calibrationFrames = Math.ceil(400 / this.frameMs);
             this.preRoll = [];
             this.chunks = [];
@@ -137,10 +169,29 @@
             Object.assign(this.options, options);
         }
 
-        _threshold () {
+        // Speech must rise this far above the room's noise floor to count
+        _startThreshold () {
             let sensitivity = Math.min(Math.max(this.options.sensitivity, 0), 1);
-            let multiplier = 5 - sensitivity * 3.2;      // 5x (low) .. 1.8x (high) above noise
-            return Math.max(this.noiseFloor * multiplier, 0.006 - sensitivity * 0.003);
+            let ratio = 6 - sensitivity * 3.5;          // 6x (low) .. 2.5x (high)
+            return Math.max(this.noiseFloor * ratio, MIN_START_LEVEL);
+        }
+
+        // Speech has ended once the level falls back near the floor, or well below
+        // how loud this utterance was (so a noisy room still ends utterances)
+        _endThreshold () {
+            return Math.max(this.noiseFloor * 2, this.speechPeak * 0.08);
+        }
+
+        // Minimum tracking: the floor drops quickly to quiet moments and creeps up
+        // slowly, so it keeps adapting while you talk without chasing your voice
+        _trackNoiseFloor (rms) {
+            if (rms < this.noiseFloor) {
+                this.noiseFloor = this.noiseFloor * 0.9 + rms * 0.1;
+            } else {
+                this.noiseFloor = Math.min(this.noiseFloor * 1.004, rms);
+            }
+
+            this.noiseFloor = Math.max(this.noiseFloor, 1e-5);
         }
 
         _frame (samples) {
@@ -156,6 +207,7 @@
             }
 
             let rms = Math.sqrt(sum / frame.length);
+            this.smoothLevel = this.smoothLevel * 0.6 + rms * 0.4;
 
             // A real microphone always has some noise. Perfect zeros mean the OS is
             // withholding audio (on macOS: the app lacks microphone permission).
@@ -173,30 +225,25 @@
 
             if (this.calibrationFrames > 0) {
                 this.calibrationFrames--;
-                this.noiseFloor = this.noiseFloor * 0.7 + rms * 0.3;
+                this.noiseFloor = this.noiseFloor ? this.noiseFloor * 0.7 + rms * 0.3 : Math.max(rms, 1e-5);
                 return;
             }
 
-            let threshold = this._threshold();
-            let loud = !this.muted && rms > threshold;
+            this._trackNoiseFloor(rms);
+            let startThreshold = this._startThreshold();
 
             if (this.options.onLevel) {
-                this.options.onLevel(Math.min(rms / (threshold * 4), 1), this.inSpeech);
+                this.options.onLevel(Math.min(rms / (startThreshold * 4), 1), this.inSpeech);
             }
 
             if (!this.inSpeech) {
-                // Track the noise floor only while nobody is talking
-                if (!loud) {
-                    this.noiseFloor = this.noiseFloor * 0.98 + Math.min(rms, threshold) * 0.02;
-                }
-
                 this.preRoll.push(frame);
 
                 if (this.preRoll.length > Math.ceil(PRE_ROLL_MS / this.frameMs)) {
                     this.preRoll.shift();
                 }
 
-                this.loudFrames = loud ? this.loudFrames + 1 : 0;
+                this.loudFrames = !this.muted && rms > startThreshold ? this.loudFrames + 1 : 0;
 
                 if (this.loudFrames >= 3) {
                     this.inSpeech = true;
@@ -204,6 +251,7 @@
                     this.preRoll = [];
                     this.speechFrames = this.loudFrames;
                     this.silenceFrames = 0;
+                    this.speechPeak = this.smoothLevel;
 
                     if (this.options.onSpeechStart) {
                         this.options.onSpeechStart();
@@ -214,8 +262,9 @@
             }
 
             this.chunks.push(frame);
+            this.speechPeak = Math.max(this.speechPeak, this.smoothLevel);
 
-            if (rms > threshold * 0.8) {
+            if (rms > this._endThreshold()) {
                 this.speechFrames++;
                 this.silenceFrames = 0;
             } else {
@@ -239,8 +288,8 @@
                 return;
             }
 
-            let pcm = resample(concat(chunks), this.sampleRate);
-            this.options.onUtterance(pcm, pcm.length / TARGET_RATE);
+            let pcm = normalise(resample(concat(chunks), this.sampleRate));
+            this.options.onUtterance(pcm, pcm.length / TARGET_RATE, speechMs / 1000);
         }
 
         _reset () {
@@ -250,6 +299,7 @@
             this.speechFrames = 0;
             this.silenceFrames = 0;
             this.loudFrames = 0;
+            this.speechPeak = 0;
         }
     }
 
@@ -282,5 +332,5 @@
     }
 
     root.TalkItOutNS = root.TalkItOutNS || {};
-    root.TalkItOutNS.audio = { Recorder, encodeWav, resample, TARGET_RATE };
+    root.TalkItOutNS.audio = { Recorder, encodeWav, resample, normalise, TARGET_RATE };
 })(window);

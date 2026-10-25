@@ -31,7 +31,7 @@ Publii's macOS app (0.47.6) is signed without Apple's microphone entitlement (`c
 **The fix:** [`scripts/patch-publii-mic.sh`](scripts/patch-publii-mic.sh) adds that one entitlement to your copy of Publii and re-signs it locally. Quit Publii, open Terminal, and run:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/theBstar/publii-talk-it-out/v0.1.2/scripts/patch-publii-mic.sh
+curl -fsSLO https://raw.githubusercontent.com/theBstar/publii-talk-it-out/v0.1.3/scripts/patch-publii-mic.sh
 bash patch-publii-mic.sh
 ```
 

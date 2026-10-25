@@ -6,7 +6,7 @@
     'use strict';
 
     const NS = root.TalkItOutNS;
-    const VERSION = '0.1.2';
+    const VERSION = '0.1.3';
     const REPO_URL = NS.settings.LINKS.repo;
     // Publii minor versions this release was built and tested against
     const TESTED_PUBLII = ['0.47'];
@@ -110,8 +110,8 @@
             usage: () => NS.claude.usage(),
 
             // Runs 16 kHz PCM through the same pipeline as the microphone (testing/debugging)
-            simulateUtterance (pcm, duration) {
-                session._enqueue(pcm, duration || pcm.length / NS.audio.TARGET_RATE);
+            simulateUtterance (pcm, voicedSeconds) {
+                session._enqueue(pcm, voicedSeconds || pcm.length / NS.audio.TARGET_RATE);
                 return session.queue;
             },
 

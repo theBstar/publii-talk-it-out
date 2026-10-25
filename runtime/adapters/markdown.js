@@ -238,10 +238,12 @@
 
             undo () {
                 cm.undo();
+                cm.setCursor(cm.getCursor('to'));
             },
 
             redo () {
                 cm.redo();
+                cm.setCursor(cm.getCursor('to'));
             },
 
             deleteUnit (unit) {

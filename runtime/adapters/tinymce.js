@@ -126,13 +126,17 @@
                 transact(() => editor.execCommand('InsertLineBreak'));
             },
 
+            // Undo restores the old selection; collapse it so the next dictation
+            // doesn't overwrite the text that was just brought back
             undo () {
                 editor.undoManager.undo();
+                editor.selection.collapse(false);
                 changed();
             },
 
             redo () {
                 editor.undoManager.redo();
+                editor.selection.collapse(false);
                 changed();
             },
 

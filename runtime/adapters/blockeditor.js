@@ -193,6 +193,14 @@
             }
         }
 
+        function collapseSelection () {
+            let sel = document.getSelection();
+
+            if (sel.rangeCount && !sel.isCollapsed) {
+                sel.collapseToEnd();
+            }
+        }
+
         function isEmpty () {
             return vm.content.every(block => block.type === 'publii-paragraph' && C.stripHtml(blockHtml(block)).trim() === '');
         }
@@ -301,11 +309,13 @@
 
                 focusCurrent();
                 document.execCommand('undo');
+                collapseSelection();
             },
 
             redo () {
                 focusCurrent();
                 document.execCommand('redo');
+                collapseSelection();
             },
 
             deleteUnit (unit) {

@@ -9,7 +9,7 @@
 
     const NS = window.TalkItOutNS;
     const S = NS.settings;
-    const VERSION = '0.1.2';
+    const VERSION = '0.1.3';
     const parentWindow = window.parent;
     const pluginBase = new URL('../', window.location.href).href;
     const $ = selector => document.querySelector(selector);

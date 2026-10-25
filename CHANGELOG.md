@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.3 — 2026-10-25
+
+Fixes from testing with a real microphone in a normal, noisy room.
+
+- **Sentences no longer run together.** The microphone's automatic gain control is now off: it boosted the room between sentences until the pauses looked like speech. The speech detector also keeps adapting to background noise while you talk, and ends an utterance relative to how loud you were speaking.
+- **Commands work mid-sentence.** If you don't pause before "New paragraph." or "Editor, make this a heading.", the command is still recognised and run in order with the surrounding dictation.
+- **A bare "stop" no longer turns the mic off** while dictating; say "stop listening". This stops a stray word from someone nearby from ending your session.
+- **Fewer invented phrases.** Whisper's habit of hearing "Thank you." or "Please subscribe to our channel." in background noise is filtered by how much real voice was in the clip.
+- Quiet speech is normalised in volume before transcription.
+- After "undo", the cursor sits at the end of the restored text, so the next words you dictate don't replace it.
+
 ## 0.1.2 — 2026-10-25
 
 - Corrected the speech model download sizes on the settings page and in the README. Macs with GPU acceleration download the full-precision encoder, so the recommended model is about 210 MB rather than 80 MB, and Large v3 Turbo is about 2.9 GB rather than 800 MB.

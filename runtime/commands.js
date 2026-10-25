@@ -105,7 +105,10 @@
         [/^(?:delete|remove) (?:this|the|current|the current) (?:paragraph|block|line)$/, () => ({ name: 'deleteBlock' })],
         [/^(?:delete|remove) (?:the )?selection$/, () => ({ name: 'deleteSelection' })],
 
-        [/^(?:stop|pause)(?: listening| dictation| dictating)?$|^go to sleep$|^mic off$/, () => ({ name: 'stop' })],
+        [/^(?:stop|pause)(?: listening| dictation| dictating)?$|^go to sleep$|^mic off$/, m => ({
+            // A bare "stop" from someone else in the room shouldn't turn the mic off mid-dictation
+            name: 'stop', args: { explicit: m[0] !== 'stop' && m[0] !== 'pause' }
+        })],
         [/^(?:switch to |start |go to )?(?:dictation|dictating|dictate)(?: mode)?$/, () => ({ name: 'setMode', args: { mode: 'dictate' } })],
         [/^(?:switch to |go to )?(?:command|commands|edit|editing) mode$|^switch to (?:commands|editing)$/, () => ({ name: 'setMode', args: { mode: 'command' } })],
         [/^(?:start|begin|new)(?: a| an)? (?:new )?(?:draft|article)(?: mode)?$|^draft mode$/, () => ({ name: 'setMode', args: { mode: 'draft' } })],
@@ -215,27 +218,44 @@
         return String(raw).slice(match[0].length).trim();
     }
 
-    // Whisper produces these on silence or background noise
-    const HALLUCINATIONS = [
+    // Whisper invents these on silence or background noise (it was trained on a lot
+    // of subtitled video). Short phrases are only dropped when there was little
+    // actual voice in the clip; the video-outro phrases almost never belong in a post.
+    const SHORT_HALLUCINATIONS = [
         /^(?:thank you|thanks)(?: (?:so much|very much))?(?: for watching)?[.!]*$/i,
         /^(?:you|bye|okay|so|uh|um|hmm)[.!?]*$/i,
         /^\[.*\]$|^\(.*\)$|^♪.*$/,
-        /^(?:subtitles|captions) by .*$/i,
         /^\.+$/
     ];
 
-    function isLikelyNoise (text, durationSeconds) {
+    const VIDEO_HALLUCINATIONS = [
+        /\b(?:please )?(?:like and )?subscribe to (?:our|my|the) channel\b/i,
+        /\bthanks? (?:you )?for watching\b/i,
+        /\bsee you in the next video\b/i,
+        /^(?:subtitles|captions|transcription) by\b/i
+    ];
+
+    /**
+     * @param {string} text - transcript
+     * @param {number} [voicedSeconds] - how much of the clip was actual voice
+     */
+    function isLikelyNoise (text, voicedSeconds) {
         let clean = String(text || '').replace(/\[BLANK_AUDIO\]/gi, '').trim();
 
         if (!clean) {
             return true;
         }
 
-        if (durationSeconds !== undefined && durationSeconds > 2) {
-            return false;
-        }
+        let sentences = splitSentences(clean);
+        let unknownLength = voicedSeconds === undefined;
+        let isVideoPhrase = sentence => (unknownLength || voicedSeconds < 4) && VIDEO_HALLUCINATIONS.some(re => re.test(sentence));
+        // Next to an invented outro, a "Thank you." is part of the same invention
+        let shortAllowed = unknownLength || voicedSeconds < 1.5 || sentences.some(isVideoPhrase);
 
-        return HALLUCINATIONS.some(re => re.test(clean));
+        // Every sentence has to look invented for the whole clip to be dropped
+        return sentences.every(sentence => (
+            (shortAllowed && SHORT_HALLUCINATIONS.some(re => re.test(sentence))) || isVideoPhrase(sentence)
+        ));
     }
 
     /**
@@ -264,6 +284,10 @@
         if (mode === 'draft' && !forcedCommand) {
             let command = matchCommand(body);
 
+            if (command && command.name === 'stop' && !command.args.explicit) {
+                command = null;
+            }
+
             if (command && DRAFT_COMMANDS.has(command.name)) {
                 // In draft mode only whole, short utterances count as commands, so
                 // "heading" commands must be explicit: "heading: why this matters"
@@ -277,6 +301,10 @@
 
         if (mode === 'dictate' && !forcedCommand) {
             let command = matchCommand(body);
+
+            if (command && command.name === 'stop' && !command.args.explicit) {
+                command = null;
+            }
 
             if (command && DICTATION_SAFE.has(command.name)) {
                 return Object.assign({ kind: 'command' }, command);
@@ -299,8 +327,53 @@
         return { kind: 'command', name: 'unknown', args: { text: body }, raw: text };
     }
 
+    // Whisper punctuates, so one utterance can hold several sentences, e.g. when the
+    // speaker doesn't pause before "New paragraph." or background talk fills the
+    // pauses. Commands spoken as their own sentence are split out and run in order;
+    // the sentences between them are typed as one piece of text.
+    function splitSentences (text) {
+        return (String(text).match(/[^.!?]+(?:[.!?]+["'\u201d)\]]*|$)\s*/g) || [])
+            .map(sentence => sentence.trim())
+            .filter(Boolean);
+    }
+
+    function parseUtterance (raw, options = {}) {
+        let whole = parse(raw, options);
+
+        if (whole.kind !== 'text') {
+            return [whole];
+        }
+
+        let sentences = splitSentences(whole.text);
+
+        if (sentences.length < 2) {
+            return [whole];
+        }
+
+        let intents = [];
+
+        sentences.forEach(sentence => {
+            let intent = parse(sentence, options);
+            let previous = intents[intents.length - 1];
+
+            if (intent.kind === 'ignore') {
+                return;
+            }
+
+            if (intent.kind === 'text' && previous && previous.kind === 'text') {
+                previous.text += ' ' + intent.text;
+            } else {
+                intents.push(intent);
+            }
+        });
+
+        return intents.length ? intents : [whole];
+    }
+
     const api = {
         parse,
+        parseUtterance,
+        splitSentences,
         matchCommand,
         normalise,
         stripWakeWord,

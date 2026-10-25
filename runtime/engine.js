@@ -185,7 +185,7 @@
                             { label: 'How to fix', run: () => window.mainProcessAPI.shellOpenExternal(NS.settings.LINKS.micHelp) }
                         ]);
                     },
-                    onUtterance: (pcm, duration) => this._enqueue(pcm, duration)
+                    onUtterance: (pcm, duration, voiced) => this._enqueue(pcm, voiced)
                 });
 
                 await this.recorder.start();
@@ -283,12 +283,12 @@
 
         /* ---------------- utterance pipeline ---------------- */
 
-        _enqueue (pcm, duration) {
+        _enqueue (pcm, voicedSeconds) {
             this.pendingUtterances++;
             this.setStatus('Transcribing…');
 
             this.queue = this.queue
-                .then(() => this._process(pcm, duration))
+                .then(() => this._process(pcm, voicedSeconds))
                 .catch(error => this.notify((error && error.message) || String(error), 'error'))
                 .then(() => {
                     this.pendingUtterances--;
@@ -299,27 +299,35 @@
                 });
         }
 
-        async _process (pcm, duration) {
+        async _process (pcm, voicedSeconds) {
             let engine = this._engine();
             let adapter = this.getAdapter();
             let prompt = adapter && this.mode !== 'draft' ? plain(adapter.textBeforeCursor()) : '';
             let text = await engine.transcribe(pcm, { prompt });
-            await this.handleTranscript(text, duration);
+            await this.handleTranscript(text, voicedSeconds);
         }
 
-        async handleTranscript (text, duration) {
-            if (NS.commands.isLikelyNoise(text, duration)) {
+        async handleTranscript (text, voicedSeconds) {
+            if (NS.commands.isLikelyNoise(text, voicedSeconds)) {
                 return;
             }
 
-            let intent = NS.commands.parse(text, {
+            let intents = NS.commands.parseUtterance(text, {
                 mode: this.mode,
                 wakeWords: NS.settings.wakeWordList(this.settings),
                 aiEnabled: this.settings.ai.enabled && !!this.settings.ai.apiKey
             });
 
-            this.ui && this.ui.showHeard(text, intent);
-            await this.execute(intent);
+            // Label the panel by the most significant part of what was heard
+            let summary = intents.find(intent => intent.kind === 'ai') ||
+                intents.find(intent => intent.kind === 'command') ||
+                intents[0];
+
+            this.ui && this.ui.showHeard(text, summary);
+
+            for (const intent of intents) {
+                await this.execute(intent);
+            }
         }
 
         async execute (intent) {
