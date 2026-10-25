@@ -31,7 +31,7 @@ Publii's macOS app (0.47.6) is signed without Apple's microphone entitlement (`c
 **The fix:** [`scripts/patch-publii-mic.sh`](scripts/patch-publii-mic.sh) adds that one entitlement to your copy of Publii and re-signs it locally. Quit Publii, open Terminal, and run:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/theBstar/publii-talk-it-out/v0.1.1/scripts/patch-publii-mic.sh
+curl -fsSLO https://raw.githubusercontent.com/theBstar/publii-talk-it-out/v0.1.2/scripts/patch-publii-mic.sh
 bash patch-publii-mic.sh
 ```
 
@@ -49,7 +49,7 @@ The proper fix is for Publii to ship with the entitlement. The fix has been prop
 1. Download `talk-it-out-<version>.zip` from the [latest release](https://github.com/theBstar/publii-talk-it-out/releases/latest).
 2. In Publii, open the app menu at the top right (the **⋯** or bell icon) → **Plugins** → **Install plugin**, and pick the zip.
 3. Open your site → **Tools & Plugins**, switch on **Talk It Out**, and click it to open its settings.
-4. Click **Test microphone & recognition**. The first run downloads the speech model (about 80 MB, once). If it reports silence, apply the [microphone fix](#microphone-on-macos) and try again.
+4. Click **Test microphone & recognition**. The first run downloads the speech model once (about 210 MB for the recommended model). If it reports silence, apply the [microphone fix](#microphone-on-macos) and try again.
 
 Open any post: the mic panel is in the bottom-right corner. Click the mic or press **⌥⇧V**.
 

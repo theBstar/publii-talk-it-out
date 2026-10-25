@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2 — 2026-10-25
+
+- Corrected the speech model download sizes on the settings page and in the README. Macs with GPU acceleration download the full-precision encoder, so the recommended model is about 210 MB rather than 80 MB, and Large v3 Turbo is about 2.9 GB rather than 800 MB.
+
 ## 0.1.1 — 2026-10-25
 
 - **Microphone on macOS:** Publii 0.47.6 is signed without Apple's microphone entitlement, so it receives pure silence. Talk It Out now detects this, stops listening, and explains the fix instead of showing a flat meter.

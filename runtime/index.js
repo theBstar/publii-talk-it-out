@@ -6,7 +6,7 @@
     'use strict';
 
     const NS = root.TalkItOutNS;
-    const VERSION = '0.1.1';
+    const VERSION = '0.1.2';
     const REPO_URL = NS.settings.LINKS.repo;
     // Publii minor versions this release was built and tested against
     const TESTED_PUBLII = ['0.47'];

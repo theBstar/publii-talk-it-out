@@ -23,7 +23,7 @@
         // TinyMCE records the folder each external plugin was loaded from
         var base = (tinymce.PluginManager.urls && tinymce.PluginManager.urls.talkitout) || '';
         var script = document.createElement('script');
-        script.src = base.replace(/\/$/, '') + '/loader.js?v=0.1.1';
+        script.src = base.replace(/\/$/, '') + '/loader.js?v=0.1.2';
         document.head.appendChild(script);
     }
 

@@ -58,12 +58,13 @@
                 <label>
                     <span>Model</span>
                     <select data-setting="stt.localModel">
-                        <option value="onnx-community/whisper-tiny.en">Tiny, English · fastest, ~40 MB</option>
-                        <option value="onnx-community/whisper-base.en">Base, English · recommended, ~80 MB</option>
-                        <option value="onnx-community/whisper-small.en">Small, English · more accurate, ~250 MB</option>
-                        <option value="onnx-community/whisper-base">Base, multilingual · ~80 MB</option>
-                        <option value="onnx-community/whisper-large-v3-turbo">Large v3 Turbo, multilingual · best, ~800 MB, needs a GPU</option>
+                        <option value="onnx-community/whisper-tiny.en">Tiny, English · fastest, ~120 MB</option>
+                        <option value="onnx-community/whisper-base.en">Base, English · recommended, ~210 MB</option>
+                        <option value="onnx-community/whisper-small.en">Small, English · more accurate, ~590 MB</option>
+                        <option value="onnx-community/whisper-base">Base, multilingual · ~210 MB</option>
+                        <option value="onnx-community/whisper-large-v3-turbo">Large v3 Turbo, multilingual · best, ~2.9 GB</option>
                     </select>
+                    <small>One-time download, cached afterwards. Sizes are for Macs with GPU acceleration (most Macs); they're 2–3× smaller without it.</small>
                 </label>
                 <label data-show-when="stt.localModel!~.en">
                     <span>Language</span>
